@@ -296,7 +296,7 @@ const OrigAndTranslatedTexts = ({
 	}, [texts.length]);
 	return (
 		<div
-			className="flex-1 overflow-y-auto bg-card border border-border p-6 flex flex-col gap-3"
+			className="flex-1 overflow-y-auto bg-card border border-border p-6 pb-10 flex flex-col gap-3"
 			ref={scrollRef}
 		>
 			{texts.map((text) => (
