@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { AudioSource } from "../App";
 
 interface ControlPanelProps {
 	isRecording: boolean;
@@ -17,6 +18,8 @@ interface ControlPanelProps {
 	setApiKey: (key: string) => void;
 	targetLanguage: string;
 	setTargetLanguage: (lang: string) => void;
+	audioSource: AudioSource;
+	setAudioSource: (source: AudioSource) => void;
 }
 
 export const ControlPanel = ({
@@ -36,6 +39,8 @@ export const ControlPanel = ({
 	setApiKey,
 	targetLanguage,
 	setTargetLanguage,
+	audioSource,
+	setAudioSource,
 }: ControlPanelProps) => {
 	const [showApiKeyInput, setShowApiKeyInput] = useState(false);
 	const [showSettings, setShowSettings] = useState(true);
@@ -51,17 +56,17 @@ export const ControlPanel = ({
 	};
 
 	return (
-		<div className="bg-white rounded-lg shadow mb-6 shrink-0">
+		<div className="bg-card border border-border mb-4 shrink-0">
 			{/* Header with collapse button */}
-			<div className="p-6 pb-4 flex items-center justify-between">
-				<h2 className="text-lg font-semibold text-gray-800">Control Panel</h2>
+			<div className="px-4 py-3 flex items-center justify-between border-b border-border">
+				<h2 className="text-sm font-medium text-foreground">Control Panel</h2>
 				<button
 					type="button"
 					onClick={() => setShowSettings(!showSettings)}
-					className="text-gray-600 hover:text-gray-800 transition-colors"
+					className="text-muted-foreground hover:text-foreground transition-colors"
 				>
 					<svg
-						className={`w-5 h-5 transition-transform ${
+						className={`w-4 h-4 transition-transform ${
 							showSettings ? "rotate-180" : ""
 						}`}
 						fill="none"
@@ -82,17 +87,18 @@ export const ControlPanel = ({
 
 			{/* Collapsible settings content */}
 			{showSettings && (
-				<div className="px-6 pb-4">
-					<div className="mb-4">
+				<div className="p-4 space-y-4">
+					{/* API Key Section */}
+					<div>
 						<label
 							htmlFor="api-key"
-							className="block text-sm font-semibold text-gray-700 mb-2"
+							className="block text-xs font-medium text-foreground mb-1.5"
 						>
-							Soniox API Key:
+							Soniox API Key
 						</label>
 						{!apiKey && (
-							<p className="text-sm text-red-500 mb-2">
-								No API key set. You must set an Soniox API key to use the app.
+							<p className="text-xs text-destructive mb-1.5">
+								No API key set. Required to use the app.
 							</p>
 						)}
 						<div className="flex gap-2">
@@ -104,19 +110,19 @@ export const ControlPanel = ({
 										value={apiKey}
 										onChange={(e) => setApiKey(e.target.value)}
 										placeholder="Enter your Soniox API key"
-										className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+										className="flex-1 h-8 px-3 text-sm bg-background border border-input focus:outline-none focus:ring-1 focus:ring-ring"
 									/>
 									<button
 										type="button"
 										onClick={saveApiKey}
-										className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-semibold"
+										className="h-8 px-3 text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
 									>
 										Save
 									</button>
 									<button
 										type="button"
 										onClick={() => setShowApiKeyInput(false)}
-										className="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold"
+										className="h-8 px-3 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
 									>
 										Cancel
 									</button>
@@ -129,13 +135,13 @@ export const ControlPanel = ({
 										value={apiKey}
 										readOnly
 										placeholder="No API key set"
-										className="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-gray-50"
+										className="flex-1 h-8 px-3 text-sm bg-muted border border-input cursor-default"
 									/>
 									<button
 										type="button"
 										onClick={() => setShowApiKeyInput(true)}
 										disabled={isRecording}
-										className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+										className="h-8 px-3 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										Edit
 									</button>
@@ -143,7 +149,7 @@ export const ControlPanel = ({
 										type="button"
 										onClick={clearApiKey}
 										disabled={isRecording}
-										className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed"
+										className="h-8 px-3 text-xs font-medium bg-destructive text-primary-foreground hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
 									>
 										Clear
 									</button>
@@ -152,43 +158,87 @@ export const ControlPanel = ({
 						</div>
 					</div>
 
-					<div className="grid grid-cols-2 gap-4 mb-4">
-						<div>
-							<label
-								htmlFor="microphone-select"
-								className="block text-sm font-semibold text-gray-700 mb-2"
-							>
-								Microphone:
+					{/* Audio Source Section */}
+					<div>
+						<label className="block text-xs font-medium text-foreground mb-1.5">
+							Audio Source
+						</label>
+						<div className="flex gap-4">
+							<label className="flex items-center gap-2 cursor-pointer text-sm">
+								<input
+									type="radio"
+									name="audioSource"
+									value="screen"
+									checked={audioSource === "screen"}
+									onChange={() => setAudioSource("screen")}
+									disabled={isRecording}
+									className="w-3.5 h-3.5 accent-primary disabled:cursor-not-allowed"
+								/>
+								<span className="text-foreground">
+									Screen Share (Tab Audio)
+								</span>
 							</label>
-							<select
-								id="microphone-select"
-								value={selectedDeviceId}
-								onChange={(e) => setSelectedDeviceId(e.target.value)}
-								disabled={isRecording}
-								className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-							>
-								{audioDevices.map((device) => (
-									<option key={device.deviceId} value={device.deviceId}>
-										{device.label ||
-											`Microphone ${device.deviceId.slice(0, 8)}`}
-									</option>
-								))}
-							</select>
+							<label className="flex items-center gap-2 cursor-pointer text-sm">
+								<input
+									type="radio"
+									name="audioSource"
+									value="microphone"
+									checked={audioSource === "microphone"}
+									onChange={() => setAudioSource("microphone")}
+									disabled={isRecording}
+									className="w-3.5 h-3.5 accent-primary disabled:cursor-not-allowed"
+								/>
+								<span className="text-foreground">Microphone</span>
+							</label>
 						</div>
+						{audioSource === "screen" && (
+							<p className="text-xs text-muted-foreground mt-1">
+								Share a Chrome tab to capture its audio. Check "Share tab audio"
+								in the dialog.
+							</p>
+						)}
+					</div>
 
-						<div>
+					{/* Microphone & Language Selection */}
+					<div className="grid grid-cols-2 gap-4">
+						{audioSource === "microphone" && (
+							<div>
+								<label
+									htmlFor="microphone-select"
+									className="block text-xs font-medium text-foreground mb-1.5"
+								>
+									Microphone
+								</label>
+								<select
+									id="microphone-select"
+									value={selectedDeviceId}
+									onChange={(e) => setSelectedDeviceId(e.target.value)}
+									disabled={isRecording}
+									className="w-full h-8 px-3 text-sm bg-background border border-input focus:outline-none focus:ring-1 focus:ring-ring disabled:bg-muted disabled:cursor-not-allowed"
+								>
+									{audioDevices.map((device) => (
+										<option key={device.deviceId} value={device.deviceId}>
+											{device.label ||
+												`Microphone ${device.deviceId.slice(0, 8)}`}
+										</option>
+									))}
+								</select>
+							</div>
+						)}
+
+						<div className={audioSource === "screen" ? "col-span-2" : ""}>
 							<label
 								htmlFor="target-language"
-								className="block text-sm font-semibold text-gray-700 mb-2"
+								className="block text-xs font-medium text-foreground mb-1.5"
 							>
-								Target Language:
+								Target Language
 							</label>
 							<select
 								id="target-language"
 								value={targetLanguage}
 								onChange={(e) => setTargetLanguage(e.target.value)}
 								disabled={isRecording}
-								className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+								className="w-full h-8 px-3 text-sm bg-background border border-input focus:outline-none focus:ring-1 focus:ring-ring disabled:bg-muted disabled:cursor-not-allowed"
 							>
 								<option value="en">English</option>
 								<option value="zh">Chinese (中文)</option>
@@ -196,24 +246,19 @@ export const ControlPanel = ({
 							</select>
 						</div>
 					</div>
-					<div>
-						<span className="block text-sm opacity-50 mb-2">
-							Remember to disable Chrome-wide echo cancellation
-						</span>
-					</div>
 				</div>
 			)}
 
 			{/* Control buttons - always visible */}
-			<div className="px-6 pb-6">
-				<div className="flex items-center gap-4">
+			<div className="px-4 py-3 border-t border-border">
+				<div className="flex items-center gap-2">
 					<button
 						type="button"
 						onClick={isRecording ? stopRecording : startRecording}
-						className={`px-6 py-3 rounded-lg font-semibold ${
+						className={`h-8 px-4 text-xs font-medium transition-colors ${
 							isRecording
-								? "bg-red-500 hover:bg-red-600 text-white"
-								: "bg-blue-500 hover:bg-blue-600 text-white"
+								? "bg-destructive text-primary-foreground hover:bg-destructive/90"
+								: "bg-primary text-primary-foreground hover:bg-primary/90"
 						}`}
 					>
 						{isRecording ? "Stop" : "Start Recording"}
@@ -221,7 +266,7 @@ export const ControlPanel = ({
 					<button
 						type="button"
 						onClick={clearAll}
-						className="px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-semibold"
+						className="h-8 px-4 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
 					>
 						Clear
 					</button>
@@ -229,20 +274,16 @@ export const ControlPanel = ({
 						<button
 							type="button"
 							onClick={pipWindow ? closePiP : openPiP}
-							className={`px-6 py-3 rounded-lg font-semibold ${
-								pipWindow
-									? "bg-orange-500 hover:bg-orange-600 text-white"
-									: "bg-purple-500 hover:bg-purple-600 text-white"
-							}`}
+							className="h-8 px-4 text-xs font-medium bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-colors"
 						>
 							{pipWindow ? "Close PiP" : "Open PiP"}
 						</button>
 					)}
-					<div className="ml-auto">
-						<span className="text-gray-600">Status: </span>
+					<div className="ml-auto flex items-center gap-2">
+						<span className="text-xs text-muted-foreground">Status:</span>
 						<span
-							className={`font-semibold ${
-								isRecording ? "text-green-600" : "text-gray-500"
+							className={`text-xs font-medium ${
+								isRecording ? "text-primary" : "text-muted-foreground"
 							}`}
 						>
 							{status}

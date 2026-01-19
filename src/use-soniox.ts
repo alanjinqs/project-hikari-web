@@ -8,6 +8,7 @@ interface UseSonioxOptions {
 	apiKey: string;
 	selectedDeviceId: string;
 	targetLanguage: string;
+	stream?: MediaStream | null;
 	onFinalOriginalText: (text: string) => void;
 	onFinalTranslatedText: (text: string) => void;
 	onPendingOriginalText: (text: string) => void;
@@ -18,6 +19,7 @@ export const useSoniox = ({
 	apiKey,
 	selectedDeviceId,
 	targetLanguage,
+	stream,
 	onFinalOriginalText,
 	onFinalTranslatedText,
 	onPendingOriginalText,
@@ -52,9 +54,14 @@ export const useSoniox = ({
 				translation: { type: "one_way", target_language: targetLanguage },
 				// enableSpeakerDiarization: true,
 				enableEndpointDetection: true,
-				audioConstraints: selectedDeviceId
-					? { deviceId: { exact: selectedDeviceId } }
-					: {},
+				// Use provided stream (e.g., from screen share) or fall back to microphone
+				...(stream
+					? { stream }
+					: {
+							audioConstraints: selectedDeviceId
+								? { deviceId: { exact: selectedDeviceId } }
+								: {},
+						}),
 
 				onPartialResult: (result: SpeechToTextAPIResponse) => {
 					if (!result.tokens?.length) {

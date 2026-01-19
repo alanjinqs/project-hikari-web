@@ -4,6 +4,8 @@ import { usePiP } from "./use-pip";
 import { useSoniox } from "./use-soniox";
 import { ControlPanel } from "./component/ControlPanel";
 
+export type AudioSource = "microphone" | "screen";
+
 function App() {
 	const [finishedJapaneseText, setFinishedJapaneseText] = useState("");
 	const [finishedTranslatedText, setFinishedTranslatedText] = useState("");
@@ -17,12 +19,21 @@ function App() {
 	const [selectedDeviceId, setSelectedDeviceId] = useState<string>("");
 	const [apiKey, setApiKey] = useState("");
 	const [targetLanguage, setTargetLanguage] = useState("en");
+	const [audioSource, setAudioSource] = useState<AudioSource>("screen");
+	const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+	const displayVideoTrackRef = useRef<MediaStreamTrack | null>(null);
 
 	// Soniox recording hook
-	const { isRecording, status, startRecording, stopRecording } = useSoniox({
+	const {
+		isRecording,
+		status,
+		startRecording: startSonioxRecording,
+		stopRecording: stopSonioxRecording,
+	} = useSoniox({
 		apiKey,
 		selectedDeviceId,
 		targetLanguage,
+		stream: audioSource === "screen" ? screenStream : null,
 		onFinalOriginalText: (text) =>
 			setFinishedJapaneseText((prev) => prev + text),
 		onFinalTranslatedText: (text) =>
@@ -30,6 +41,79 @@ function App() {
 		onPendingOriginalText: setPendingJapanese,
 		onPendingTranslatedText: setPendingTanslatedText,
 	});
+
+	// Request screen share and get audio stream
+	const requestScreenShare = async (): Promise<MediaStream | null> => {
+		try {
+			const displayStream = await navigator.mediaDevices.getDisplayMedia({
+				video: true,
+				audio: true,
+			});
+
+			// Check if audio track exists
+			const audioTracks = displayStream.getAudioTracks();
+			if (audioTracks.length === 0) {
+				alert(
+					"No audio track found. Make sure to share a Chrome tab with audio enabled.",
+				);
+				displayStream.getTracks().forEach((track) => track.stop());
+				return null;
+			}
+
+			// Listen for when user stops sharing (video track ends when user clicks "Stop sharing")
+			const videoTrack = displayStream.getVideoTracks()[0];
+			displayVideoTrackRef.current = videoTrack;
+
+			videoTrack?.addEventListener("ended", () => {
+				displayVideoTrackRef.current = null;
+				setScreenStream(null);
+				setAudioSource("microphone");
+			});
+
+			// Create a new MediaStream with only audio tracks
+			// This is important because Soniox expects audio-only stream
+			const audioOnlyStream = new MediaStream(audioTracks);
+
+			return audioOnlyStream;
+		} catch (error) {
+			console.error("Failed to get screen share:", error);
+			return null;
+		}
+	};
+
+	// Wrapper functions for start/stop recording
+	const startRecording = async () => {
+		if (audioSource === "screen") {
+			const stream = await requestScreenShare();
+			if (!stream) {
+				return;
+			}
+			setScreenStream(stream);
+			// Need to wait for state update, so we'll start recording after stream is set
+		} else {
+			startSonioxRecording();
+		}
+	};
+
+	// Effect to start recording after screen stream is set
+	useEffect(() => {
+		if (screenStream && audioSource === "screen" && !isRecording) {
+			startSonioxRecording();
+		}
+	}, [screenStream, audioSource, isRecording, startSonioxRecording]);
+
+	const stopRecording = () => {
+		stopSonioxRecording();
+		// Clean up screen stream and video track
+		if (screenStream) {
+			screenStream.getTracks().forEach((track) => track.stop());
+			setScreenStream(null);
+		}
+		if (displayVideoTrackRef.current) {
+			displayVideoTrackRef.current.stop();
+			displayVideoTrackRef.current = null;
+		}
+	};
 
 	useEffect(() => {
 		if (finishedJapaneseText && finishedTranslatedText) {
@@ -113,8 +197,8 @@ function App() {
 	};
 
 	return (
-		<div className="bg-neutral-200">
-			<div className="p-8 max-w-6xl mx-auto h-screen flex flex-col">
+		<div className="bg-muted">
+			<div className="p-6 max-w-4xl mx-auto h-screen flex flex-col">
 				<ControlPanel
 					isRecording={isRecording}
 					status={status}
@@ -132,6 +216,8 @@ function App() {
 					setApiKey={setApiKey}
 					targetLanguage={targetLanguage}
 					setTargetLanguage={setTargetLanguage}
+					audioSource={audioSource}
+					setAudioSource={setAudioSource}
 				/>
 
 				<OrigAndTranslatedTexts
@@ -144,7 +230,7 @@ function App() {
 			{/* Picture-in-Picture Window Content */}
 			{pipWindow &&
 				createPortal(
-					<div className="bg-gray-100 flex flex-col h-[540px] relative">
+					<div className="bg-background flex flex-col h-[540px] relative">
 						<OrigAndTranslatedTexts
 							texts={texts}
 							onGoingJapanese={pendingJapanese}
@@ -153,25 +239,25 @@ function App() {
 						<button
 							type="button"
 							onClick={isRecording ? stopRecording : startRecording}
-							className={`absolute top-4 right-4 size-10 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110 ${
+							className={`absolute top-3 right-3 size-8 flex items-center justify-center transition-colors rounded-full ${
 								isRecording
-									? "bg-red-500 hover:bg-red-600 animate-pulse"
-									: "bg-blue-500 hover:bg-blue-600"
-							} text-white`}
+									? "bg-destructive hover:bg-destructive/90"
+									: "bg-primary hover:bg-primary/90"
+							} text-primary-foreground`}
 							title={isRecording ? "Stop Recording" : "Start Recording"}
 						>
 							{isRecording ? (
 								<svg
-									className="w-6 h-6"
+									className="w-4 h-4"
 									fill="currentColor"
 									viewBox="0 0 24 24"
 								>
 									<title>Stop Recording</title>
-									<rect x="6" y="6" width="12" height="12" rx="1" />
+									<rect x="6" y="6" width="12" height="12" />
 								</svg>
 							) : (
 								<svg
-									className="w-6 h-6"
+									className="w-4 h-4"
 									fill="currentColor"
 									viewBox="0 0 24 24"
 								>
@@ -210,19 +296,21 @@ const OrigAndTranslatedTexts = ({
 	}, [texts.length]);
 	return (
 		<div
-			className="flex-1 overflow-y-auto bg-white p-8 flex flex-col gap-4 pb-10"
+			className="flex-1 overflow-y-auto bg-card border border-border p-6 flex flex-col gap-3"
 			ref={scrollRef}
 		>
 			{texts.map((text) => (
-				<div key={text.id}>
-					<div>{text.japanese}</div>
-					<div className="opacity-50 text-sm">{text.translated}</div>
+				<div key={text.id} className="space-y-0.5">
+					<div className="text-sm text-foreground">{text.japanese}</div>
+					<div className="text-xs text-muted-foreground">{text.translated}</div>
 				</div>
 			))}
-			<div className="text-blue-500/80 text-italic">
-				<div>{onGoingJapanese}</div>
-				<div>{onGoingTranslated}</div>
-			</div>
+			{(onGoingJapanese || onGoingTranslated) && (
+				<div className="space-y-0.5">
+					<div className="text-sm text-primary">{onGoingJapanese}</div>
+					<div className="text-xs text-primary/60">{onGoingTranslated}</div>
+				</div>
+			)}
 		</div>
 	);
 };
